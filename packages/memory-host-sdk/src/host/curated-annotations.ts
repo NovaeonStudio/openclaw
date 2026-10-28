@@ -40,7 +40,7 @@ export function stripMemoryAnnotationCarriers(text: string): string {
   // Only the body is line-scoped; preserve the existing whitespace-prefix grammar.
   for (const annotation of scanMemoryAnnotations(
     text,
-    /<!--\s*(trigger|importance|project)\s*:/giu,
+    /<!--\s*(trigger|importance|project|chunking)\s*:/giu,
     true,
   )) {
     parts.push(text.slice(cursor, annotation.start));
@@ -54,6 +54,17 @@ export function stripMemoryAnnotationCarriers(text: string): string {
     const end = offset + space.length;
     return end === source.length || /[\r\n\u2028\u2029]/u.test(source.charAt(end)) ? "" : space;
   });
+}
+
+const PER_ENTRY_CHUNKING_MARKER =
+  /^[ \t]*<!--[ \t]*chunking[ \t]*:[ \t]*entries[ \t]*-->[ \t]*$/imu;
+
+/**
+ * File-level opt-in to per-entry chunking for topic files. The carrier must sit on
+ * its own line so prose or code samples that merely mention it do not opt a file in.
+ */
+export function hasPerEntryChunkingMarker(text: string): boolean {
+  return PER_ENTRY_CHUNKING_MARKER.test(text);
 }
 
 export type CuratedProjectAnnotations = {

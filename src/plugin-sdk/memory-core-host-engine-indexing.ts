@@ -13,6 +13,7 @@ export { enforceEmbeddingMaxInputTokens } from "../../packages/memory-host-sdk/s
 export { resolveEmbeddingInputFormatVersion } from "../../packages/memory-host-sdk/src/host/embedding-inputs.js";
 export {
   extractCuratedEntryRecallMetadata,
+  hasPerEntryChunkingMarker,
   stripMemoryAnnotationCarriers,
 } from "../../packages/memory-host-sdk/src/host/curated-annotations.js";
 export type {

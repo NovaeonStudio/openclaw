@@ -2,6 +2,7 @@ import {
   chunkMarkdown,
   extractCuratedEntryRecallMetadata,
   enforceEmbeddingMaxInputTokens,
+  hasPerEntryChunkingMarker,
   hashText,
   remapChunkLines,
   stripMemoryAnnotationCarriers,
@@ -52,9 +53,13 @@ export function prepareMemoryIndexChunks({
   // Hash, chunk, and embed one immutable read; publication validates it again.
   const contentHash = source === "memory" ? hashText(content) : undefined;
   const normalizedEntryPath = entry.path.replaceAll("\\", "/");
+  // Topic files opt in with a marker in the content. Their hash changes with the
+  // marker, so adding or removing it reindexes through the normal per-file path.
   const perEntry =
     source === "memory" &&
-    (normalizedEntryPath === "MEMORY.md" || normalizedEntryPath === "USER.md");
+    (normalizedEntryPath === "MEMORY.md" ||
+      normalizedEntryPath === "USER.md" ||
+      (normalizedEntryPath.startsWith("memory/") && hasPerEntryChunkingMarker(content)));
   const indexingContent = source === "memory" ? stripMemoryAnnotationCarriers(content) : content;
   // All chunks share one source snapshot; splitting per chunk makes indexing quadratic.
   const sourceLines = source === "memory" ? content.replace(/\r\n/gu, "\n").split("\n") : [];

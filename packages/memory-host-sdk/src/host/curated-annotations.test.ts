@@ -3,6 +3,7 @@ import {
   INVALID_PROJECT_ANNOTATION_KEY,
   extractCuratedEntryRecallMetadata,
   extractProjectKeysFromCuratedEntry,
+  hasPerEntryChunkingMarker,
   stripMemoryAnnotationCarriers,
 } from "./curated-annotations.js";
 
@@ -88,5 +89,30 @@ describe("curated annotation grammar", () => {
       triggers: null,
       projectKey: INVALID_PROJECT_ANNOTATION_KEY,
     });
+  });
+
+  it.each([
+    ["<!-- chunking: entries -->\n- a", true],
+    ["# Title\n  <!--chunking:entries-->  \n- a", true],
+    ["<!-- Chunking: Entries -->", true],
+    ["- a <!-- chunking: entries -->", false],
+    ["<!-- chunking: sentences -->", false],
+    ["text <!-- chunking: entries --> text", false],
+  ])("detects the per-entry chunking marker in %j", (input, expected) => {
+    expect(hasPerEntryChunkingMarker(input)).toBe(expected);
+  });
+
+  it("strips the chunking marker line and leaves line numbers intact", () => {
+    expect(stripMemoryAnnotationCarriers("<!-- chunking: entries -->\n- a")).toBe("\n- a");
+  });
+
+  it("keeps the chunking marker out of recall metadata", () => {
+    expect(
+      extractCuratedEntryRecallMetadata({
+        sourceLines: ["- a <!-- chunking: entries -->"],
+        curatedRoot: true,
+        projectScopeEligible: true,
+      }),
+    ).toEqual({ importance: null, triggers: null, projectKey: null });
   });
 });

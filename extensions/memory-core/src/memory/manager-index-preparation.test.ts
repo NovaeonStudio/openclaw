@@ -79,3 +79,58 @@ it.each([undefined, { id: "test", maxInputTokens: 4096 }])(
     expect(serialize(prepared).byteLength).toBeLessThan(80 * 1024);
   },
 );
+
+const topicBullets = [
+  "- Alice prefers morning standups.",
+  "- Alice is allergic to peanuts.",
+  "- Alice drives a green Volvo.",
+];
+const topicChunks = (content: string, path = "memory/people/alice.md") =>
+  prepare(content, {
+    entry: { path, mtimeMs: 1 },
+    pathClassification: { curatedRoot: false, originClass: "agent" },
+  }).chunks;
+
+it("chunks a marked topic file per entry and strips the marker", () => {
+  const chunks = topicChunks(["<!-- chunking: entries -->", "# Alice", ...topicBullets].join("\n"));
+  // The heading attaches to the first entry, as in MEMORY.md.
+  expect(chunks.map((chunk) => chunk.text)).toEqual([
+    `# Alice\n${topicBullets[0]}`,
+    topicBullets[1],
+    topicBullets[2],
+  ]);
+  expect(chunks.every((chunk) => !chunk.text.includes("chunking"))).toBe(true);
+});
+
+it("keeps size-based chunking for topic files without the marker", () => {
+  const chunks = topicChunks(["# Alice", ...topicBullets].join("\n"));
+  expect(chunks).toHaveLength(1);
+  expect(chunks[0]?.text).toBe(["# Alice", ...topicBullets].join("\n"));
+});
+
+it.each([
+  ["a marker inside prose", "Notes mention <!-- chunking: entries --> inline."],
+  ["an unknown mode", "<!-- chunking: sentences -->"],
+])("ignores %s", (_label, line) => {
+  expect(topicChunks([line, ...topicBullets].join("\n"))).toHaveLength(1);
+});
+
+it("does not honor the marker outside memory/ topic files", () => {
+  const content = ["<!-- chunking: entries -->", ...topicBullets].join("\n");
+  expect(topicChunks(content, "notes/alice.md")).toHaveLength(1);
+});
+
+it("leaves recall metadata eligibility to the path classification", () => {
+  const chunks = topicChunks(
+    [
+      "<!-- chunking: entries -->",
+      "- Scoped fact. <!-- project: alpha-key -->",
+      "- Triggered fact. <!-- trigger: deploy --> <!-- importance: 9 -->",
+    ].join("\n"),
+  );
+  // Same as an unmarked topic file: project scope applies, triggers and importance do not.
+  expect(chunks).toMatchObject([
+    { text: "- Scoped fact.", projectKey: "alpha-key", triggers: null, importance: null },
+    { text: "- Triggered fact.", projectKey: null, triggers: null, importance: null },
+  ]);
+});
