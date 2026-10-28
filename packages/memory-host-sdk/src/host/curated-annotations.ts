@@ -56,15 +56,28 @@ export function stripMemoryAnnotationCarriers(text: string): string {
   });
 }
 
-const PER_ENTRY_CHUNKING_MARKER =
-  /^[ \t]*<!--[ \t]*chunking[ \t]*:[ \t]*entries[ \t]*-->[ \t]*$/imu;
+const PER_ENTRY_CHUNKING_MARKER = /^[ \t]*<!--[ \t]*chunking[ \t]*:[ \t]*entries[ \t]*-->[ \t]*$/iu;
+const FENCE_LINE = /^ {0,3}(`{3,}|~{3,})/u;
 
 /**
  * File-level opt-in to per-entry chunking for topic files. The carrier must sit on
- * its own line so prose or code samples that merely mention it do not opt a file in.
+ * its own line outside fenced code, so prose or code samples that merely mention it
+ * do not opt a file in.
  */
 export function hasPerEntryChunkingMarker(text: string): boolean {
-  return PER_ENTRY_CHUNKING_MARKER.test(text);
+  let fence: string | undefined;
+  for (const line of text.split(/\r\n|[\r\n]/u)) {
+    const open = FENCE_LINE.exec(line)?.[1];
+    if (fence === undefined) {
+      fence = open;
+    } else if (open?.[0] === fence[0] && open.length >= fence.length) {
+      fence = undefined;
+    }
+    if (fence === undefined && !open && PER_ENTRY_CHUNKING_MARKER.test(line)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 export type CuratedProjectAnnotations = {

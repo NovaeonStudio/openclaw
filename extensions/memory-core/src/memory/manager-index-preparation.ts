@@ -83,14 +83,15 @@ export function prepareMemoryIndexChunks({
       previous.entryStartLine === undefined &&
       chunk.endLine > previous.endLine &&
       // Annotated headings own their metadata; size-split headings also differ from source lines.
-      previous.text
-        .split("\n")
-        .every(
-          (line, index) =>
-            (!line.trim() || /^ {0,3}#{1,6}(?:\s|$)/u.test(line)) &&
-            !line.includes("<!--") &&
-            line.trimEnd() === (sourceLines[previous.startLine + index - 1] ?? "").trimEnd(),
-        )
+      previous.text.split("\n").every(
+        (line, index) =>
+          (!line.trim() || /^ {0,3}#{1,6}(?:\s|$)/u.test(line)) &&
+          !line.includes("<!--") &&
+          // A stripped file-level marker leaves a blank line; it is neutral for the merge.
+          (line.trimEnd() === (sourceLines[previous.startLine + index - 1] ?? "").trimEnd() ||
+            (!line.trim() &&
+              hasPerEntryChunkingMarker(sourceLines[previous.startLine + index - 1] ?? ""))),
+      )
     ) {
       // Keep the following entry's annotation span, and do not repeat overlapping headings.
       const following = chunk.text

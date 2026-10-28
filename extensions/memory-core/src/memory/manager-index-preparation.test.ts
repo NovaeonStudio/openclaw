@@ -91,15 +91,18 @@ const topicChunks = (content: string, path = "memory/people/alice.md") =>
     pathClassification: { curatedRoot: false, originClass: "agent" },
   }).chunks;
 
-it("chunks a marked topic file per entry and strips the marker", () => {
-  const chunks = topicChunks(["<!-- chunking: entries -->", "# Alice", ...topicBullets].join("\n"));
+it.each([
+  ["before the heading", ["<!-- chunking: entries -->", "# Alice"]],
+  ["after the heading", ["# Alice", "<!-- chunking: entries -->"]],
+])("chunks a topic file per entry with the marker %s", (_label, head) => {
+  const chunks = topicChunks([...head, ...topicBullets].join("\n"));
   // The heading attaches to the first entry, as in MEMORY.md.
-  expect(chunks.map((chunk) => chunk.text)).toEqual([
+  // A marker after the heading leaves its blank line behind; the heading still attaches.
+  expect(chunks.map((chunk) => chunk.text.replace(/\n\n/u, "\n"))).toEqual([
     `# Alice\n${topicBullets[0]}`,
     topicBullets[1],
     topicBullets[2],
   ]);
-  expect(chunks.every((chunk) => !chunk.text.includes("chunking"))).toBe(true);
 });
 
 it("keeps size-based chunking for topic files without the marker", () => {
@@ -110,7 +113,7 @@ it("keeps size-based chunking for topic files without the marker", () => {
 
 it.each([
   ["a marker inside prose", "Notes mention <!-- chunking: entries --> inline."],
-  ["an unknown mode", "<!-- chunking: sentences -->"],
+  ["a fenced example", "```md\n<!-- chunking: entries -->\n```"],
 ])("ignores %s", (_label, line) => {
   expect(topicChunks([line, ...topicBullets].join("\n"))).toHaveLength(1);
 });

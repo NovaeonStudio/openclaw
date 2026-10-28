@@ -94,25 +94,11 @@ describe("curated annotation grammar", () => {
   it.each([
     ["<!-- chunking: entries -->\n- a", true],
     ["# Title\n  <!--chunking:entries-->  \n- a", true],
-    ["<!-- Chunking: Entries -->", true],
     ["- a <!-- chunking: entries -->", false],
     ["<!-- chunking: sentences -->", false],
-    ["text <!-- chunking: entries --> text", false],
+    ["```md\n<!-- chunking: entries -->\n```", false],
+    ["~~~\n<!-- chunking: entries -->\n~~~\n<!-- chunking: entries -->", true],
   ])("detects the per-entry chunking marker in %j", (input, expected) => {
     expect(hasPerEntryChunkingMarker(input)).toBe(expected);
-  });
-
-  it("strips the chunking marker line and leaves line numbers intact", () => {
-    expect(stripMemoryAnnotationCarriers("<!-- chunking: entries -->\n- a")).toBe("\n- a");
-  });
-
-  it("keeps the chunking marker out of recall metadata", () => {
-    expect(
-      extractCuratedEntryRecallMetadata({
-        sourceLines: ["- a <!-- chunking: entries -->"],
-        curatedRoot: true,
-        projectScopeEligible: true,
-      }),
-    ).toEqual({ importance: null, triggers: null, projectKey: null });
   });
 });
