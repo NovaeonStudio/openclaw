@@ -70,7 +70,11 @@ export function hasPerEntryChunkingMarker(text: string): boolean {
     const open = FENCE_LINE.exec(line)?.[1];
     if (fence === undefined) {
       fence = open;
-    } else if (open?.[0] === fence[0] && open.length >= fence.length) {
+    } else if (
+      open !== undefined &&
+      open.startsWith(fence.charAt(0)) &&
+      open.length >= fence.length
+    ) {
       fence = undefined;
     }
     if (fence === undefined && !open && PER_ENTRY_CHUNKING_MARKER.test(line)) {
