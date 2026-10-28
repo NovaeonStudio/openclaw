@@ -93,6 +93,8 @@ describe("curated annotation grammar", () => {
 
   it.each([
     ["<!-- chunking: sentences -->", false],
+    ["    <!-- chunking: entries -->", false],
+    ["   <!-- chunking: entries -->", true],
     ["~~~\n<!-- chunking: entries -->\n~~~\n<!-- chunking: entries -->", true],
     ["```txt\n```not-a-close\n<!-- chunking: entries -->\n```", false],
     ["```txt\n````  \n<!-- chunking: entries -->", true],

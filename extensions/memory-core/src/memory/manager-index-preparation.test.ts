@@ -114,6 +114,8 @@ it("keeps size-based chunking for topic files without the marker", () => {
 it.each([
   ["a marker inside prose", "Notes mention <!-- chunking: entries --> inline."],
   ["a fenced example", "```md\n<!-- chunking: entries -->\n```"],
+  ["an indented code example", "Example:\n\n    <!-- chunking: entries -->\n"],
+  ["a tab-indented code example", "Example:\n\n\t<!-- chunking: entries -->\n"],
   [
     "a marker after a non-closing fence line",
     "```md\n```not-a-close\n<!-- chunking: entries -->\n```",

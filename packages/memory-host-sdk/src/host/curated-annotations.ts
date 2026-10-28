@@ -56,12 +56,12 @@ export function stripMemoryAnnotationCarriers(text: string): string {
   });
 }
 
-const PER_ENTRY_CHUNKING_MARKER = /^[ \t]*<!--[ \t]*chunking[ \t]*:[ \t]*entries[ \t]*-->[ \t]*$/iu;
+const PER_ENTRY_CHUNKING_MARKER = /^ {0,3}<!--[ \t]*chunking[ \t]*:[ \t]*entries[ \t]*-->[ \t]*$/iu;
 const FENCE_LINE = /^ {0,3}(`{3,}|~{3,})(.*)$/u;
 
 /**
  * File-level opt-in to per-entry chunking for topic files. The carrier must sit on
- * its own line outside fenced code, so prose or code samples that merely mention it
+ * its own line outside fenced or indented code, so prose or code samples that merely mention it
  * do not opt a file in.
  */
 export function hasPerEntryChunkingMarker(text: string): boolean {
