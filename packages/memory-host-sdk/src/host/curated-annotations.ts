@@ -57,7 +57,7 @@ export function stripMemoryAnnotationCarriers(text: string): string {
 }
 
 const PER_ENTRY_CHUNKING_MARKER = /^[ \t]*<!--[ \t]*chunking[ \t]*:[ \t]*entries[ \t]*-->[ \t]*$/iu;
-const FENCE_LINE = /^ {0,3}(`{3,}|~{3,})/u;
+const FENCE_LINE = /^ {0,3}(`{3,}|~{3,})(.*)$/u;
 
 /**
  * File-level opt-in to per-entry chunking for topic files. The carrier must sit on
@@ -67,14 +67,19 @@ const FENCE_LINE = /^ {0,3}(`{3,}|~{3,})/u;
 export function hasPerEntryChunkingMarker(text: string): boolean {
   let fence: string | undefined;
   for (const line of text.split(/\r\n|[\r\n]/u)) {
-    const open = FENCE_LINE.exec(line)?.[1];
+    const match = FENCE_LINE.exec(line);
+    const open = match?.[1];
+    const trailing = match?.[2] ?? "";
     if (fence === undefined) {
-      fence = open;
+      // CommonMark forbids backticks in a backtick fence info string.
+      fence = open && !(open.startsWith("`") && trailing.includes("`")) ? open : undefined;
     } else if (
       open !== undefined &&
       open.startsWith(fence.charAt(0)) &&
-      open.length >= fence.length
+      open.length >= fence.length &&
+      /^[ \t]*$/u.test(trailing)
     ) {
+      // Only spaces or tabs may follow a closing delimiter; anything else is code content.
       fence = undefined;
     }
     if (fence === undefined && !open && PER_ENTRY_CHUNKING_MARKER.test(line)) {

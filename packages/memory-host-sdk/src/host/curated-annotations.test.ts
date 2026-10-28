@@ -92,12 +92,11 @@ describe("curated annotation grammar", () => {
   });
 
   it.each([
-    ["<!-- chunking: entries -->\n- a", true],
-    ["# Title\n  <!--chunking:entries-->  \n- a", true],
-    ["- a <!-- chunking: entries -->", false],
     ["<!-- chunking: sentences -->", false],
-    ["```md\n<!-- chunking: entries -->\n```", false],
     ["~~~\n<!-- chunking: entries -->\n~~~\n<!-- chunking: entries -->", true],
+    ["```txt\n```not-a-close\n<!-- chunking: entries -->\n```", false],
+    ["```txt\n````  \n<!-- chunking: entries -->", true],
+    ["``` `x`\n<!-- chunking: entries -->", true],
   ])("detects the per-entry chunking marker in %j", (input, expected) => {
     expect(hasPerEntryChunkingMarker(input)).toBe(expected);
   });

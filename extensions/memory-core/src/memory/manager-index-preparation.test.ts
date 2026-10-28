@@ -114,6 +114,10 @@ it("keeps size-based chunking for topic files without the marker", () => {
 it.each([
   ["a marker inside prose", "Notes mention <!-- chunking: entries --> inline."],
   ["a fenced example", "```md\n<!-- chunking: entries -->\n```"],
+  [
+    "a marker after a non-closing fence line",
+    "```md\n```not-a-close\n<!-- chunking: entries -->\n```",
+  ],
 ])("ignores %s", (_label, line) => {
   expect(topicChunks([line, ...topicBullets].join("\n"))).toHaveLength(1);
 });
