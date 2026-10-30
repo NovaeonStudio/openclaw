@@ -40,7 +40,7 @@ export function stripMemoryAnnotationCarriers(text: string): string {
   // Only the body is line-scoped; preserve the existing whitespace-prefix grammar.
   for (const annotation of scanMemoryAnnotations(
     text,
-    /<!--\s*(trigger|importance|project|chunking)\s*:/giu,
+    /<!--\s*(trigger|importance|project)\s*:/giu,
     true,
   )) {
     parts.push(text.slice(cursor, annotation.start));
@@ -65,8 +65,34 @@ const FENCE_LINE = /^ {0,3}(`{3,}|~{3,})(.*)$/u;
  * do not opt a file in.
  */
 export function hasPerEntryChunkingMarker(text: string): boolean {
+  return !perEntryChunkingMarkerLines(text).next().done;
+}
+
+/**
+ * Blanks recognized marker lines and keeps their line breaks, so indexed line
+ * numbers still match the source. Anything the detector ignores stays verbatim.
+ */
+export function stripPerEntryChunkingMarkers(text: string): string {
+  const parts: string[] = [];
+  let cursor = 0;
+  for (const line of perEntryChunkingMarkerLines(text)) {
+    parts.push(text.slice(cursor, line.start));
+    cursor = line.end;
+  }
+  if (parts.length === 0) {
+    return text;
+  }
+  parts.push(text.slice(cursor));
+  return parts.join("");
+}
+
+function* perEntryChunkingMarkerLines(text: string) {
   let fence: string | undefined;
-  for (const line of text.split(/\r\n|[\r\n]/u)) {
+  const lineBreak = /\r\n|[\r\n]/gu;
+  for (let start = 0; ; start = lineBreak.lastIndex) {
+    lineBreak.lastIndex = start;
+    const end = lineBreak.exec(text)?.index ?? text.length;
+    const line = text.slice(start, end);
     const match = FENCE_LINE.exec(line);
     const open = match?.[1];
     const trailing = match?.[2] ?? "";
@@ -83,10 +109,12 @@ export function hasPerEntryChunkingMarker(text: string): boolean {
       fence = undefined;
     }
     if (fence === undefined && !open && PER_ENTRY_CHUNKING_MARKER.test(line)) {
-      return true;
+      yield { start, end };
+    }
+    if (end === text.length) {
+      return;
     }
   }
-  return false;
 }
 
 export type CuratedProjectAnnotations = {

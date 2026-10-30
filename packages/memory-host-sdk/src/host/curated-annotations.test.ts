@@ -5,6 +5,7 @@ import {
   extractProjectKeysFromCuratedEntry,
   hasPerEntryChunkingMarker,
   stripMemoryAnnotationCarriers,
+  stripPerEntryChunkingMarkers,
 } from "./curated-annotations.js";
 
 describe("curated annotation grammar", () => {
@@ -104,5 +105,16 @@ describe("curated annotation grammar", () => {
     ["``` `x`\n<!-- chunking: entries -->", true],
   ])("detects the per-entry chunking marker in %j", (input, expected) => {
     expect(hasPerEntryChunkingMarker(input)).toBe(expected);
+  });
+
+  it.each([
+    ["<!-- chunking: entries -->\n# A", "\n# A"],
+    ["# A\r\n <!-- chunking: entries -->\r\n- b", "# A\r\n\r\n- b"],
+    ["<!--\nchunking: entries -->", "<!--\nchunking: entries -->"],
+    ["x <!-- chunking: entries -->", "x <!-- chunking: entries -->"],
+    ["```md\n<!-- chunking: entries -->\n```", "```md\n<!-- chunking: entries -->\n```"],
+    ["    <!-- chunking: entries -->", "    <!-- chunking: entries -->"],
+  ])("blanks only per-entry marker lines in %j", (input, expected) => {
+    expect(stripPerEntryChunkingMarkers(input)).toBe(expected);
   });
 });

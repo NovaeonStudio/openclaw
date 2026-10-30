@@ -15,6 +15,7 @@ export {
   extractCuratedEntryRecallMetadata,
   hasPerEntryChunkingMarker,
   stripMemoryAnnotationCarriers,
+  stripPerEntryChunkingMarkers,
 } from "../../packages/memory-host-sdk/src/host/curated-annotations.js";
 export type {
   MemoryEntryProvenance,

@@ -6,6 +6,7 @@ import {
   hashText,
   remapChunkLines,
   stripMemoryAnnotationCarriers,
+  stripPerEntryChunkingMarkers,
   type MemoryChunk,
   type MemoryEntryProvenance,
   type MemorySource,
@@ -55,12 +56,19 @@ export function prepareMemoryIndexChunks({
   const normalizedEntryPath = entry.path.replaceAll("\\", "/");
   // Topic files opt in with a marker in the content. Their hash changes with the
   // marker, so adding or removing it reindexes through the normal per-file path.
-  const perEntry =
+  const topicMarker =
     source === "memory" &&
-    (normalizedEntryPath === "MEMORY.md" ||
-      normalizedEntryPath === "USER.md" ||
-      (normalizedEntryPath.startsWith("memory/") && hasPerEntryChunkingMarker(content)));
-  const indexingContent = source === "memory" ? stripMemoryAnnotationCarriers(content) : content;
+    normalizedEntryPath.startsWith("memory/") &&
+    hasPerEntryChunkingMarker(content);
+  const perEntry =
+    topicMarker ||
+    (source === "memory" &&
+      (normalizedEntryPath === "MEMORY.md" || normalizedEntryPath === "USER.md"));
+  // Only an honored marker line is blanked; examples and other files keep their text and line numbers.
+  const indexingContent =
+    source === "memory"
+      ? stripMemoryAnnotationCarriers(topicMarker ? stripPerEntryChunkingMarkers(content) : content)
+      : content;
   // All chunks share one source snapshot; splitting per chunk makes indexing quadratic.
   const sourceLines = source === "memory" ? content.replace(/\r\n/gu, "\n").split("\n") : [];
   const chunkOptions = { ...chunking, perEntry };
