@@ -57,7 +57,8 @@ export function stripMemoryAnnotationCarriers(text: string): string {
 }
 
 const PER_ENTRY_CHUNKING_MARKER = /^ {0,3}<!--[ \t]*chunking[ \t]*:[ \t]*entries[ \t]*-->[ \t]*$/iu;
-const FENCE_LINE = /^ {0,3}(`{3,}|~{3,})(.*)$/u;
+// Match the fence prefix only: a greedy suffix can backtrack quadratically on Unicode separators.
+const FENCE_LINE = /^ {0,3}(`{3,}|~{3,})/u;
 
 /**
  * File-level opt-in to per-entry chunking for topic files. The carrier must sit on
@@ -95,7 +96,7 @@ function* perEntryChunkingMarkerLines(text: string) {
     const line = text.slice(start, end);
     const match = FENCE_LINE.exec(line);
     const open = match?.[1];
-    const trailing = match?.[2] ?? "";
+    const trailing = match ? line.slice(match[0].length) : "";
     if (fence === undefined) {
       // CommonMark forbids backticks in a backtick fence info string.
       fence = open && !(open.startsWith("`") && trailing.includes("`")) ? open : undefined;
