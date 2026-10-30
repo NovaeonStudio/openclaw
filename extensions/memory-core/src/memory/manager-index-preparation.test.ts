@@ -124,9 +124,30 @@ it.each([
   expect(topicChunks([line, ...topicBullets].join("\n"))).toHaveLength(1);
 });
 
+it.each([
+  ["a marker inside prose", "Notes mention <!-- chunking: entries --> inline."],
+  ["a fenced example", "Example:\n\n```md\n<!-- chunking: entries -->\n```"],
+  ["an indented code example", "Example:\n\n    <!-- chunking: entries -->\n"],
+])("keeps %s in the indexed text", (_label, line) => {
+  const content = [line, ...topicBullets].join("\n");
+  expect(topicChunks(content).map((chunk) => chunk.text)).toEqual([content]);
+});
+
 it("does not honor the marker outside memory/ topic files", () => {
   const content = ["<!-- chunking: entries -->", ...topicBullets].join("\n");
-  expect(topicChunks(content, "notes/alice.md")).toHaveLength(1);
+  expect(topicChunks(content, "notes/alice.md").map((chunk) => chunk.text)).toEqual([content]);
+});
+
+it("keeps source lines for a chunking comment that is not a marker line", () => {
+  const { chunks } = prepare(
+    ["- Global.", "<!--", "chunking: entries -->", "- Scoped. <!-- project: alpha -->"].join("\n"),
+  );
+  expect(chunks.at(-1)).toMatchObject({
+    text: "- Scoped.",
+    startLine: 4,
+    endLine: 4,
+    projectKey: "alpha",
+  });
 });
 
 it("leaves recall metadata eligibility to the path classification", () => {

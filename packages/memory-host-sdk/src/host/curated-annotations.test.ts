@@ -16,6 +16,9 @@ describe("curated annotation grammar", () => {
     ["<!--trigger:x <!--\nimportance:7 -->", "<!--trigger:x"],
     ["text <!--note: visible -->", "text <!--note: visible -->"],
     ["a \t<!--trigger: x -->\r\nb \tX", "a\r\nb \tX"],
+    // Chunking markers are file-level controls, not entry carriers; snippets keep them.
+    ["<!--\nchunking: entries -->", "<!--\nchunking: entries -->"],
+    ["```md\n<!-- chunking: entries -->\n```", "```md\n<!-- chunking: entries -->\n```"],
   ])("strips carriers without changing the grammar of %j", (input, expected) => {
     expect(stripMemoryAnnotationCarriers(input)).toBe(expected);
   });
