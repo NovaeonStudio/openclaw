@@ -96,6 +96,16 @@ describe("curated annotation grammar", () => {
   });
 
   it.each([
+    ["- ```md\n  <!-- chunking: entries -->\n  ```", false],
+    ["- Example:\n  ```md\n  sample\n\n<!-- chunking: entries -->", true],
+  ])("handles container fences in %j", (input, expected) => {
+    expect(hasPerEntryChunkingMarker(input)).toBe(expected);
+    expect(stripPerEntryChunkingMarkers(input)).toBe(
+      expected ? input.replace("<!-- chunking: entries -->", "") : input,
+    );
+  });
+
+  it.each([
     ["<!-- chunking: sentences -->", false],
     ["    <!-- chunking: entries -->", false],
     ["   <!-- chunking: entries -->", true],

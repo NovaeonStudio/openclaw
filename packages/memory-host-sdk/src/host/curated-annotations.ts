@@ -1,3 +1,5 @@
+import MarkdownIt from "markdown-it";
+
 // Pure curated-memory annotation parsing shared by runtime and doctor paths.
 export const INVALID_PROJECT_ANNOTATION_KEY = "!invalid-project-annotation";
 
@@ -57,8 +59,8 @@ export function stripMemoryAnnotationCarriers(text: string): string {
 }
 
 const PER_ENTRY_CHUNKING_MARKER = /^ {0,3}<!--[ \t]*chunking[ \t]*:[ \t]*entries[ \t]*-->[ \t]*$/iu;
-// Match the fence prefix only: a greedy suffix can backtrack quadratically on Unicode separators.
-const FENCE_LINE = /^ {0,3}(`{3,}|~{3,})/u;
+// Block parsing owns container fences and their implicit close on dedent. Inline parsing is unnecessary.
+const markerBlockParser = new MarkdownIt("commonmark").disable("inline");
 
 /**
  * File-level opt-in to per-entry chunking for topic files. The carrier must sit on
@@ -88,32 +90,35 @@ export function stripPerEntryChunkingMarkers(text: string): string {
 }
 
 function* perEntryChunkingMarkerLines(text: string) {
-  let fence: string | undefined;
+  // Avoid parsing files with no candidate control line. Keep original offsets and line endings.
+  const candidates: { start: number; end: number; line: number }[] = [];
   const lineBreak = /\r\n|[\r\n]/gu;
-  for (let start = 0; ; start = lineBreak.lastIndex) {
+  for (let start = 0, line = 0; ; start = lineBreak.lastIndex, line += 1) {
     lineBreak.lastIndex = start;
     const end = lineBreak.exec(text)?.index ?? text.length;
-    const line = text.slice(start, end);
-    const match = FENCE_LINE.exec(line);
-    const open = match?.[1];
-    const trailing = match ? line.slice(match[0].length) : "";
-    if (fence === undefined) {
-      // CommonMark forbids backticks in a backtick fence info string.
-      fence = open && !(open.startsWith("`") && trailing.includes("`")) ? open : undefined;
-    } else if (
-      open !== undefined &&
-      open.startsWith(fence.charAt(0)) &&
-      open.length >= fence.length &&
-      /^[ \t]*$/u.test(trailing)
-    ) {
-      // Only spaces or tabs may follow a closing delimiter; anything else is code content.
-      fence = undefined;
-    }
-    if (fence === undefined && !open && PER_ENTRY_CHUNKING_MARKER.test(line)) {
-      yield { start, end };
+    if (PER_ENTRY_CHUNKING_MARKER.test(text.slice(start, end))) {
+      candidates.push({ start, end, line });
     }
     if (end === text.length) {
-      return;
+      break;
+    }
+  }
+  if (!candidates.length) {
+    return;
+  }
+  const codeBlocks = markerBlockParser
+    .parse(text, {})
+    .flatMap((token) =>
+      (token.type === "fence" || token.type === "code_block") && token.map ? [token.map] : [],
+    );
+  let blockIndex = 0;
+  for (const candidate of candidates) {
+    while ((codeBlocks[blockIndex]?.[1] ?? Infinity) <= candidate.line) {
+      blockIndex += 1;
+    }
+    const range = codeBlocks[blockIndex];
+    if (!range || candidate.line < range[0]) {
+      yield candidate;
     }
   }
 }

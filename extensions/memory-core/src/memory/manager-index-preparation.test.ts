@@ -164,3 +164,13 @@ it("leaves recall metadata eligibility to the path classification", () => {
     { text: "- Triggered fact.", projectKey: null, triggers: null, importance: null },
   ]);
 });
+
+it("keeps list-fenced marker examples and honors a marker after a dedented list", () => {
+  const example = "- ```md\n  <!-- chunking: entries -->\n  ```";
+  const content = [example, ...topicBullets].join("\n");
+  expect(topicChunks(content).map((chunk) => chunk.text)).toEqual([content]);
+  const afterList = "- Example:\n  ```md\n  sample\n\n<!-- chunking: entries -->";
+  const chunks = topicChunks([afterList, ...topicBullets].join("\n"));
+  expect(chunks.some((chunk) => chunk.text === topicBullets[1])).toBe(true);
+  expect(chunks.map((chunk) => chunk.text).join("\n")).not.toContain("<!-- chunking:");
+});
