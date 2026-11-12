@@ -299,7 +299,7 @@ async function prepareCapabilityReads<T>(
   try {
     for (;;) {
       try {
-        return { value: preparedReads.run(scope, read), read: replay, release };
+        return { value: await preparedReads.run(scope, read), read: replay, release };
       } catch (error) {
         if (!(error instanceof SessionCapabilityReadRequired)) {
           throw error;
